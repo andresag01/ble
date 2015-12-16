@@ -58,28 +58,17 @@ public:
      *  @param[in]  numCharacteristics
      *              The number of characteristics.
      */
-    GattService(const UUID &uuid, GattCharacteristic *characteristics[], unsigned numCharacteristics) :
-        _primaryServiceID(uuid), _characteristicCount(numCharacteristics), _characteristics(characteristics), _handle(0) {
+    GattService(const UUID &uuid) :
+        _primaryServiceID(uuid), _handle(0) {
         /* empty */
     }
 
     const UUID &getUUID(void)                const {return _primaryServiceID;   }
     uint16_t    getHandle(void)              const {return _handle;             }
-    uint8_t     getCharacteristicCount(void) const {return _characteristicCount;}
     void setHandle(uint16_t handle) {_handle = handle;}
-
-    GattCharacteristic *getCharacteristic(uint8_t index) {
-        if (index >= _characteristicCount) {
-            return NULL;
-        }
-
-        return _characteristics[index];
-    }
 
 private:
     UUID                 _primaryServiceID;
-    uint8_t              _characteristicCount;
-    GattCharacteristic **_characteristics;
     uint16_t             _handle;
 };
 

@@ -55,14 +55,85 @@ protected:
      * The following functions are meant to be overridden in the platform-specific sub-class.
      */
 public:
-
     /**
-     * Add a service declaration to the local server ATT table. Also add the
-     * characteristics contained within.
+     * Add a service declaration to the local server ATT table.
+     *
+     * @param[in]     service
+     *                  GattService object containing the service UUID.
+     *
+     * @return BLE_ERROR_NONE if the service was successfully added to the local server ATT table.
      */
     virtual ble_error_t addService(GattService &service) {
         /* Avoid compiler warnings about unused variables. */
         (void)service;
+
+        return BLE_ERROR_NOT_IMPLEMENTED; /* Requesting action from porters: override this API if this capability is supported. */
+    }
+
+    /**
+     * Add a characteristic declaration together with the data and user description descriptor
+     * attributes to the local server ATT table. The added characteristic will be part of the last
+     * previously declared service with a call to addService().
+     *
+     * @param[in/out] characteristic
+     *                  GattCharacteristic object containing the characteristic properties and
+     *                  security requirements. If the characteristic is successfully added to the
+     *                  local server ATT table, then the GattCharacteristic::valueHandle member will
+     *                  contain the attribute handle of the characteristic's data.
+     * @param[in]     dataAttribute
+     *                  Attribute containing the characteristic value.
+     * @param[in]     userDescriptionDescriptor
+     *                  Attribute containing the user description descriptor
+     *
+     * @return BLE_ERROR_NONE if the characteristic was successfully added to the local server ATT table.
+     */
+    virtual ble_error_t addCharacteristic(GattCharacteristic  &characteristic,
+                                          const GattAttribute &dataAttribute,
+                                          const GattAttribute &userDescriptionDescriptor) {
+        /* Avoid compiler warnings about unused variables. */
+        (void) characteristic;
+        (void) dataAttribute;
+        (void) userDescriptionDescriptor;
+
+        return BLE_ERROR_NOT_IMPLEMENTED; /* Requesting action from porters: override this API if this capability is supported. */
+    }
+
+    /**
+     * Add a characteristic declaration together with the data attribute to the local server ATT table.
+     * The added characteristic will be part of the last previously declared service with a call to
+     * addService().
+     *
+     * @param[in/out] characteristic
+     *                  GattCharacteristic object containing the characteristic properties and
+     *                  security requirements. If the characteristic is successfully added to the
+     *                  local server ATT table, then the GattCharacteristic::valueHandle member will
+     *                  contain the attribute handle of the characteristic's data.
+     * @param[in]     dataAttribute
+     *                  Attribute containing the characteristic value.
+     *
+     * @return BLE_ERROR_NONE if the characteristic was successfully added to the local server ATT table.
+     */
+    virtual ble_error_t addCharacteristic(GattCharacteristic  &characteristic,
+                                          const GattAttribute &dataAttribute) {
+        /* Avoid compiler warnings about unused variables. */
+        (void) characteristic;
+        (void) dataAttribute;
+
+        return BLE_ERROR_NOT_IMPLEMENTED; /* Requesting action from porters: override this API if this capability is supported. */
+    }
+
+    /**
+     * Add a descriptor attribute to the local server ATT table. The added descriptor will be part of the
+     * last previously declared characteristic with a call to addCharacteristic().
+     *
+     * @param[in]    descriptor
+     *                  Attribute spacifying the descriptor information.
+     *
+     * @return BLE_ERROR_NONE if the descriptor was successfully added to the local server ATT table.
+     */
+    virtual ble_error_t addDescriptor(const GattAttribute &descriptor) {
+        /* Avoid compiler warnings about unused variables. */
+        (void) descriptor;
 
         return BLE_ERROR_NOT_IMPLEMENTED; /* Requesting action from porters: override this API if this capability is supported. */
     }
@@ -410,6 +481,7 @@ public:
     virtual ble_error_t reset(void) {
         serviceCount        = 0;
         characteristicCount = 0;
+        descriptorCount     = 0;
 
         dataSentCallChain.clear();
         dataWrittenCallChain.clear();
@@ -424,6 +496,7 @@ public:
 protected:
     uint8_t serviceCount;
     uint8_t characteristicCount;
+    uint8_t descriptorCount;
 
 private:
     DataSentCallbackChain_t    dataSentCallChain;

@@ -17,6 +17,8 @@
 #ifndef __GATT_CALLBACK_PARAM_TYPES_H__
 #define __GATT_CALLBACK_PARAM_TYPES_H__
 
+#include "GattAttribute.h"
+
 struct GattWriteCallbackParams {
     enum WriteOp_t {
         OP_INVALID               = 0x00,  /**< Invalid operation. */

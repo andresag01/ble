@@ -55,14 +55,15 @@ public:
     }
 
 public:
-    Handle_t    getHandle(void)         const {return _handle;        }
-    const UUID &getUUID(void)           const {return _uuid;          }
-    uint16_t    getLength(void)         const {return _len;           }
-    uint16_t    getMaxLength(void)      const {return _lenMax;        }
-    uint16_t   *getLengthPtr(void)            {return &_len;          }
-    void        setHandle(Handle_t id)        {_handle = id;          }
-    uint8_t    *getValuePtr(void)             {return _valuePtr;      }
-    bool        hasVariableLength(void) const {return _hasVariableLen;}
+    Handle_t       getHandle(void)         const {return _handle;        }
+    const UUID    &getUUID(void)           const {return _uuid;          }
+    uint16_t       getLength(void)         const {return _len;           }
+    uint16_t       getMaxLength(void)      const {return _lenMax;        }
+    uint16_t      *getLengthPtr(void)            {return &_len;          }
+    void           setHandle(Handle_t id)        {_handle = id;          }
+    uint8_t       *getValuePtr(void)             {return _valuePtr;      }
+    const uint8_t *getValuePtr(void)       const {return _valuePtr;      }
+    bool           hasVariableLength(void) const {return _hasVariableLen;}
 
 private:
     UUID      _uuid;           /* Characteristic UUID. */

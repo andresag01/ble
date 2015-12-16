@@ -33,15 +33,24 @@ public:
      * @param[in] level
      *               8bit batterly level. Usually used to represent percentage of batterly charge remaining.
      */
-    BatteryService(BLE &_ble, uint8_t level = 100) :
-        ble(_ble),
-        batteryLevel(level),
-        batteryLevelCharacteristic(GattCharacteristic::UUID_BATTERY_LEVEL_CHAR, &batteryLevel, GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY) {
+    BatteryService(BLE &_ble, uint8_t level = 100) : ble(_ble), batteryLevel(level)
+    {
+            GattService service(GattService::UUID_BATTERY_SERVICE);
+            ble.gattServer().addService(service);
 
-        GattCharacteristic *charTable[] = {&batteryLevelCharacteristic};
-        GattService         batteryService(GattService::UUID_BATTERY_SERVICE, charTable, sizeof(charTable) / sizeof(GattCharacteristic *));
-
-        ble.addService(batteryService);
+            batteryLvlChar = new GattCharacteristic(
+                GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ |
+                GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY
+            );
+            ble.gattServer().addCharacteristic(*batteryLvlChar,
+                GattAttribute(
+                    GattCharacteristic::UUID_BATTERY_LEVEL_CHAR,
+                    &batteryLevel,
+                    sizeof(batteryLevel),
+                    sizeof(batteryLevel),
+                    false
+                )
+            );
     }
 
     /**
@@ -53,14 +62,14 @@ public:
      */
     void updateBatteryLevel(uint8_t newLevel) {
         batteryLevel = newLevel;
-        ble.gattServer().write(batteryLevelCharacteristic.getValueHandle(), &batteryLevel, 1);
+        ble.gattServer().write(batteryLvlChar->getValueHandle(), &batteryLevel, 1);
     }
 
 protected:
     BLE &ble;
 
-    uint8_t    batteryLevel;
-    ReadOnlyGattCharacteristic<uint8_t> batteryLevelCharacteristic;
+    uint8_t             batteryLevel;
+    GattCharacteristic *batteryLvlChar;
 };
 
 #endif /* #ifndef __BLE_BATTERY_SERVICE_H__*/

@@ -19,7 +19,6 @@
 
 #include "Gap.h"
 #include "SecurityManager.h"
-#include "GattAttribute.h"
 #include "GattCallbackParamTypes.h"
 #include "FunctionPointerWithContext.h"
 
@@ -296,10 +295,7 @@ public:
     };
 
     /**
-     *  @brief  Creates a new GattCharacteristic using the specified 16-bit
-     *          UUID, value length, and properties.
-     *
-     *  @note   The UUID value must be unique in the service and is normally >1.
+     *  @brief  Creates a new GattCharacteristic using the specified properties.
      *
      *  @param[in]  uuid
      *              The UUID to use for this characteristic.
@@ -328,21 +324,9 @@ public:
      *        characteristic may be considered optional and dropped while
      *        instantiating the service with the underlying BLE stack.
      */
-    GattCharacteristic(const UUID    &uuid,
-                       uint8_t       *valuePtr       = NULL,
-                       uint16_t       len            = 0,
-                       uint16_t       maxLen         = 0,
-                       uint8_t        props          = BLE_GATT_CHAR_PROPERTIES_NONE,
-                       GattAttribute *descriptors[]  = NULL,
-                       unsigned       numDescriptors = 0,
-                       bool           hasVariableLen = true) :
-        _valueAttribute(uuid, valuePtr, len, maxLen, hasVariableLen),
+    GattCharacteristic(uint8_t props = BLE_GATT_CHAR_PROPERTIES_NONE) :
         _properties(props),
         _requiredSecurity(SecurityManager::SECURITY_MODE_ENCRYPTION_OPEN_LINK),
-        _descriptors(descriptors),
-        _descriptorCount(numDescriptors),
-        enabledReadAuthorization(false),
-        enabledWriteAuthorization(false),
         readAuthorizationCallback(),
         writeAuthorizationCallback() {
         /* empty */
@@ -364,21 +348,17 @@ public:
      */
     void setWriteAuthorizationCallback(void (*callback)(GattWriteAuthCallbackParams *)) {
         writeAuthorizationCallback.attach(callback);
-        enabledWriteAuthorization = true;
     }
     template <typename T>
     void setWriteAuthorizationCallback(T *object, void (T::*member)(GattWriteAuthCallbackParams *)) {
         writeAuthorizationCallback.attach(object, member);
-        enabledWriteAuthorization = true;
     }
     void setReadAuthorizationCallback(void (*callback)(GattReadAuthCallbackParams *)) {
         readAuthorizationCallback.attach(callback);
-        enabledReadAuthorization = true;
     }
     template <typename T>
     void setReadAuthorizationCallback(T *object, void (T::*member)(GattReadAuthCallbackParams *)) {
         readAuthorizationCallback.attach(object, member);
-        enabledReadAuthorization = true;
     }
 
     /**
@@ -425,32 +405,27 @@ public:
 
     /* accessors */
 public:
-    GattAttribute&          getValueAttribute()                 {return _valueAttribute;                }
-    const GattAttribute&    getValueAttribute()           const {return _valueAttribute;                }
-    GattAttribute::Handle_t getValueHandle(void)          const {return getValueAttribute().getHandle();}
-    uint8_t                 getProperties(void)           const {return _properties;                    }
-    SecurityManager::SecurityMode_t getRequiredSecurity() const {return _requiredSecurity;              }
-    uint8_t                 getDescriptorCount(void)      const {return _descriptorCount;               }
-    bool                    isReadAuthorizationEnabled()  const {return enabledReadAuthorization;       }
-    bool                    isWriteAuthorizationEnabled() const {return enabledWriteAuthorization;      }
+    uint16_t                        getValueHandle(void)  const {return _valueHandle;     }
+    uint8_t                         getProperties(void)   const {return _properties;      }
+    SecurityManager::SecurityMode_t getRequiredSecurity() const {return _requiredSecurity;}
 
-    GattAttribute *getDescriptor(uint8_t index) {
-        if (index >= _descriptorCount) {
-            return NULL;
-        }
-
-        return _descriptors[index];
+    bool isReadAuthorizationEnabled() const
+    {
+        return (readAuthorizationCallback.get_function() != NULL);
+    }
+    bool isWriteAuthorizationEnabled() const
+    {
+        return (writeAuthorizationCallback.get_function() != NULL);
     }
 
+public:
+    void setHandle(uint16_t valueHandle) {_valueHandle = valueHandle;}
+
 private:
-    GattAttribute                     _valueAttribute;
+    uint16_t                          _valueHandle;
     uint8_t                           _properties;
     SecurityManager::SecurityMode_t   _requiredSecurity;
-    GattAttribute                   **_descriptors;
-    uint8_t                           _descriptorCount;
 
-    bool enabledReadAuthorization;
-    bool enabledWriteAuthorization;
     FunctionPointerWithContext<GattReadAuthCallbackParams *>  readAuthorizationCallback;
     FunctionPointerWithContext<GattWriteAuthCallbackParams *> writeAuthorizationCallback;
 
@@ -458,90 +433,6 @@ private:
     /* Disallow copy and assignment. */
     GattCharacteristic(const GattCharacteristic &);
     GattCharacteristic& operator=(const GattCharacteristic &);
-};
-
-template <typename T>
-class ReadOnlyGattCharacteristic : public GattCharacteristic {
-public:
-    ReadOnlyGattCharacteristic<T>(const UUID    &uuid,
-                                  T             *valuePtr,
-                                  uint8_t        additionalProperties = BLE_GATT_CHAR_PROPERTIES_NONE,
-                                  GattAttribute *descriptors[]        = NULL,
-                                  unsigned       numDescriptors       = 0) :
-        GattCharacteristic(uuid, reinterpret_cast<uint8_t *>(valuePtr), sizeof(T), sizeof(T),
-                           BLE_GATT_CHAR_PROPERTIES_READ | additionalProperties, descriptors, numDescriptors, false) {
-        /* empty */
-    }
-};
-
-template <typename T>
-class WriteOnlyGattCharacteristic : public GattCharacteristic {
-public:
-    WriteOnlyGattCharacteristic<T>(const UUID     &uuid,
-                                   T              *valuePtr,
-                                   uint8_t        additionalProperties = BLE_GATT_CHAR_PROPERTIES_NONE,
-                                   GattAttribute *descriptors[]        = NULL,
-                                   unsigned       numDescriptors       = 0) :
-        GattCharacteristic(uuid, reinterpret_cast<uint8_t *>(valuePtr), sizeof(T), sizeof(T),
-                           BLE_GATT_CHAR_PROPERTIES_WRITE | additionalProperties, descriptors, numDescriptors) {
-        /* empty */
-    }
-};
-
-template <typename T>
-class ReadWriteGattCharacteristic : public GattCharacteristic {
-public:
-    ReadWriteGattCharacteristic<T>(const UUID    &uuid,
-                                   T             *valuePtr,
-                                   uint8_t        additionalProperties = BLE_GATT_CHAR_PROPERTIES_NONE,
-                                   GattAttribute *descriptors[]        = NULL,
-                                   unsigned       numDescriptors       = 0) :
-        GattCharacteristic(uuid, reinterpret_cast<uint8_t *>(valuePtr), sizeof(T), sizeof(T),
-                           BLE_GATT_CHAR_PROPERTIES_READ | BLE_GATT_CHAR_PROPERTIES_WRITE | additionalProperties, descriptors, numDescriptors) {
-        /* empty */
-    }
-};
-
-template <typename T, unsigned NUM_ELEMENTS>
-class WriteOnlyArrayGattCharacteristic : public GattCharacteristic {
-public:
-    WriteOnlyArrayGattCharacteristic<T, NUM_ELEMENTS>(const          UUID &uuid,
-                                                      T              valuePtr[NUM_ELEMENTS],
-                                                      uint8_t        additionalProperties = BLE_GATT_CHAR_PROPERTIES_NONE,
-                                                      GattAttribute *descriptors[]        = NULL,
-                                                      unsigned       numDescriptors       = 0) :
-        GattCharacteristic(uuid, reinterpret_cast<uint8_t *>(valuePtr), sizeof(T) * NUM_ELEMENTS, sizeof(T) * NUM_ELEMENTS,
-                           BLE_GATT_CHAR_PROPERTIES_WRITE | additionalProperties, descriptors, numDescriptors) {
-        /* empty */
-    }
-};
-
-template <typename T, unsigned NUM_ELEMENTS>
-class ReadOnlyArrayGattCharacteristic : public GattCharacteristic {
-public:
-    ReadOnlyArrayGattCharacteristic<T, NUM_ELEMENTS>(const UUID    &uuid,
-                                                     T              valuePtr[NUM_ELEMENTS],
-                                                     uint8_t        additionalProperties = BLE_GATT_CHAR_PROPERTIES_NONE,
-                                                     GattAttribute *descriptors[]        = NULL,
-                                                     unsigned       numDescriptors       = 0) :
-        GattCharacteristic(uuid, reinterpret_cast<uint8_t *>(valuePtr), sizeof(T) * NUM_ELEMENTS, sizeof(T) * NUM_ELEMENTS,
-                           BLE_GATT_CHAR_PROPERTIES_READ | additionalProperties, descriptors, numDescriptors, false) {
-        /* empty */
-    }
-};
-
-template <typename T, unsigned NUM_ELEMENTS>
-class ReadWriteArrayGattCharacteristic : public GattCharacteristic {
-public:
-    ReadWriteArrayGattCharacteristic<T, NUM_ELEMENTS>(const UUID    &uuid,
-                                                      T              valuePtr[NUM_ELEMENTS],
-                                                      uint8_t        additionalProperties = BLE_GATT_CHAR_PROPERTIES_NONE,
-                                                      GattAttribute *descriptors[]        = NULL,
-                                                      unsigned       numDescriptors       = 0) :
-        GattCharacteristic(uuid, reinterpret_cast<uint8_t *>(valuePtr), sizeof(T) * NUM_ELEMENTS, sizeof(T) * NUM_ELEMENTS,
-                           BLE_GATT_CHAR_PROPERTIES_READ | BLE_GATT_CHAR_PROPERTIES_WRITE | additionalProperties, descriptors, numDescriptors) {
-        /* empty */
-    }
 };
 
 #endif // ifndef __GATT_CHARACTERISTIC_H__
